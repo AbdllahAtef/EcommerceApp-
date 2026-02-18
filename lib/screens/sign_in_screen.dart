@@ -1,0 +1,197 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:link_flutter_ecommerce_app/constants/app_colors.dart';
+import 'package:link_flutter_ecommerce_app/constants/app_styles.dart';
+import 'package:link_flutter_ecommerce_app/l10n/app_localizations.dart';
+import 'package:link_flutter_ecommerce_app/providers/auth_provider.dart';
+import 'package:link_flutter_ecommerce_app/screens/homepage_screen.dart';
+import 'package:link_flutter_ecommerce_app/screens/password_screen.dart';
+import 'package:link_flutter_ecommerce_app/utils/showsnackbar.dart';
+import 'package:link_flutter_ecommerce_app/widgets/custom_button.dart';
+import 'package:link_flutter_ecommerce_app/widgets/custom_text_field.dart';
+import 'package:link_flutter_ecommerce_app/widgets/signin_with_button.dart';
+import 'create_account_screen.dart';
+import 'package:link_flutter_ecommerce_app/providers/sign_in_provider.dart';
+
+// Removed duplicate ConsumerWidget version
+// Use only ConsumerStatefulWidget version below
+class SignInScreen extends ConsumerStatefulWidget {
+  const SignInScreen({super.key});
+
+  @override
+  ConsumerState<SignInScreen> createState() => _SignInScreenState();
+}
+
+class _SignInScreenState extends ConsumerState<SignInScreen> {
+  late final TextEditingController emailController;
+  final _formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    super.initState();
+    emailController = TextEditingController(
+      text: ref.read(signInEmailProvider),
+    );
+    emailController.addListener(() {
+      ref.read(signInEmailProvider.notifier).state = emailController.text;
+    });
+  }
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      backgroundColor: AppColors.backgroundColor(isDarkMode),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 23),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 123),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  AppLocalizations.of(context)!.signIn,
+                  style: AppTextStyles.heading2(isDarkMode),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Form(
+                key: _formKey,
+                child: CustomTextField(
+                  controller: emailController,
+                  isPassword: false,
+                  hint: AppLocalizations.of(context)!.emailAddress,
+                  isdark: isDarkMode,
+                  validator: (value) => validateEmail(context, value),
+                ),
+              ),
+              const SizedBox(height: 16),
+              CustomButton(
+                onPressed: () async {
+                  if (_formKey.currentState?.validate() ?? false) {
+                    final exists = await ref
+                        .read(authServiceProvider)
+                        .checkIfEmailExists(emailController.text.trim());
+                    final error = ref.read(authErrorProvider);
+                    if (!exists) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            error.isNotEmpty
+                                ? error
+                                : AppLocalizations.of(context)!.noUserFound,
+                          ),
+                        ),
+                      );
+                    } else {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => PasswordScreen(
+                                email: emailController.text.trim(),
+                              ),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Text(
+                    AppLocalizations.of(context)!.dontHaveAnAccount,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(fontFamily: 'Circular'),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => CreateAccountScreen(),
+                        ),
+                      );
+                    },
+                    child: Text(
+                      AppLocalizations.of(context)!.createOne,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Circular',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 71),
+              SigninWithButton(
+                isdark: isDarkMode,
+                text: AppLocalizations.of(context)!.continueWithApple,
+                icon:
+                    isDarkMode
+                        ? Image.asset(
+                          'images/whiteApple.png',
+                          height: 25,
+                          width: 20,
+                        )
+                        : Image.asset(
+                          'images/apple.png',
+                          height: 25,
+                          width: 20,
+                        ),
+                onPressed: () {},
+              ),
+              SizedBox(height: 12.h),
+              SigninWithButton(
+                isdark: isDarkMode,
+                text: AppLocalizations.of(context)!.continueWithGoogle,
+                icon: Image.asset('images/google.png', height: 25, width: 20),
+                onPressed: () {},
+              ),
+              SizedBox(height: 12.h),
+              SigninWithButton(
+                isdark: isDarkMode,
+                text: AppLocalizations.of(context)!.continueWithFacebook,
+                icon: Image.asset('images/facebook.png', height: 25, width: 20),
+                onPressed: () async {
+                  try {
+                    final userCredential =
+                        await ref
+                            .read(authServiceProvider)
+                            .signInWithFacebook();
+
+                    print('Facebook User: ${userCredential.user}');
+                    if (userCredential.user != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const HomePage(),
+                        ),
+                      );
+                    } else {
+                      showsnackbar(context, 'Login failed, no user returned');
+                    }
+                  } catch (e) {
+                    showsnackbar(context, e.toString());
+                  }
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
