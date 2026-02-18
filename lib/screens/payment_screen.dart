@@ -259,7 +259,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
                         );
 
                         if (!mounted) return;
-                        navigator.pushReplacement(
+                        navigator.push(
                           MaterialPageRoute(
                             builder:
                                 (context) => OrderPlacedSuccessfullyScreen(

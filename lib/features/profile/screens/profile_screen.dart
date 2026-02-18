@@ -17,10 +17,10 @@ class ProfilePage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const ProfileHeader(),
-            const SizedBox(height: 24),
-            const SettingsSection(),
-            const SizedBox(height: 70),
+            // const ProfileHeader(),
+            // const SizedBox(height: 24),
+            // const SettingsSection(),
+            // const SizedBox(height: 70),
             const CircleAvatar(
               backgroundColor: Colors.white,
               radius: 50,
